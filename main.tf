@@ -22,7 +22,7 @@ provider "azurerm" {
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "kv" {
-    name = "tf-learning-kv"
+    name = "tf-learning-${terraform.workspace}-kv"
     location = azurerm_resource_group.rg.location
     resource_group_name = azurerm_resource_group.rg.name
     tenant_id = data.azurerm_client_config.current.tenant_id
@@ -32,11 +32,11 @@ resource "azurerm_key_vault" "kv" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "tf-learning-rg"
+  name     = "tf-learning-${terraform.workspace}-rg"
   location = "eastus2"
 
   tags = {
-    Environment = "dev"
+    Environment = "${terraform.workspace}"
     Team = "apollo"
   }
 }
