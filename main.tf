@@ -1,9 +1,12 @@
-# Configure the Azure provider
 terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 3.0.2"
+    }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.19.0"
     }
   }
 
@@ -13,30 +16,47 @@ terraform {
 provider "azurerm" {
   features {
     key_vault {
-        purge_soft_deleted_secrets_on_destroy = true
-        recover_soft_deleted_secrets = true
+      purge_soft_deleted_secrets_on_destroy = true
+      recover_soft_deleted_secrets          = true
     }
   }
 }
 
 data "azurerm_client_config" "current" {}
 
-resource "azurerm_key_vault" "kv" {
-    name = "tf-learning-${terraform.workspace}-kv"
-    location = azurerm_resource_group.rg.location
-    resource_group_name = azurerm_resource_group.rg.name
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    soft_delete_retention_days = 7
-    purge_protection_enabled = false
-    sku_name = "standard"
+# Input variables passed in to the config
+variable "azure_region" {
+  type        = string
+  default     = "eastus2"
+  description = "Azure region"
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = "tf-learning-${terraform.workspace}-rg"
-  location = "eastus2"
+# Local variables used within the config
+locals {
+  environment = terraform.workspace
+  team        = "apollo"
+}
 
+# Output variables "returned" from the config
+output "azure_region" {
+  value       = var.azure_region
+  description = "Azure region that was passed in to the config"
+}
+
+# Azure Resource Group
+resource "azurerm_resource_group" "rg" {
+  name     = "tf-learning-${local.environment}-rg"
+  location = var.azure_region
   tags = {
-    Environment = "${terraform.workspace}"
-    Team = "apollo"
+    Environment = local.environment
+    Team        = local.team
   }
+}
+
+# Azure Virtual Network
+resource "azurerm_virtual_network" "vnet" {
+  name                = "tf-learning-${local.environment}-vnet"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
 }
