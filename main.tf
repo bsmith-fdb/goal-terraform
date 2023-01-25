@@ -13,16 +13,11 @@ terraform {
   required_version = ">= 1.1.0"
 }
 
-provider "azurerm" {
-  features {
-    key_vault {
-      purge_soft_deleted_secrets_on_destroy = true
-      recover_soft_deleted_secrets          = true
-    }
-  }
-}
-
 data "azurerm_client_config" "current" {}
+
+provider "azurerm" {
+  features {}
+}
 
 # Input variables passed in to the config
 variable "azure_region" {
@@ -38,25 +33,38 @@ locals {
 }
 
 # Output variables "returned" from the config
-output "azure_region" {
-  value       = var.azure_region
-  description = "Azure region that was passed in to the config"
+output "resource_group_id" {
+  value       = azurerm_resource_group.my_rg.id
+  description = "Resource Group ID"
 }
 
-# Azure Resource Group
-resource "azurerm_resource_group" "rg" {
-  name     = "tf-learning-${local.environment}-rg"
-  location = var.azure_region
+# Azure Virtual Network
+resource "azurerm_virtual_network" "my_vnet" {
+  name                = "tf-learning-${local.environment}-vnet"
+  location            = azurerm_resource_group.my_rg.location
+  resource_group_name = azurerm_resource_group.my_rg.name
+  address_space       = ["10.0.0.0/16"]
+}
+
+# Azure Storage Account
+resource "azurerm_storage_account" "my_sa" {
+  name                     = "tflearning${local.environment}sa"
+  location                 = azurerm_resource_group.my_rg.location
+  resource_group_name      = azurerm_resource_group.my_rg.name
+  account_tier             = "Standard"
+  account_replication_type = "GRS"
   tags = {
     Environment = local.environment
     Team        = local.team
   }
 }
 
-# Azure Virtual Network
-resource "azurerm_virtual_network" "vnet" {
-  name                = "tf-learning-${local.environment}-vnet"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["10.0.0.0/16"]
+# Azure Resource Group
+resource "azurerm_resource_group" "my_rg" {
+  name     = "tf-learning-${local.environment}-rg"
+  location = var.azure_region
+  tags = {
+    Environment = local.environment
+    Team        = local.team
+  }
 }
